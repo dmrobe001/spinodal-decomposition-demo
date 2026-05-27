@@ -1,0 +1,1340 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Spinodal Decomposition — live demo</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Space+Mono:wght@400;700&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            :root {
+                --bg: #0c0e13;
+                --panel: #13161e;
+                --panel-2: #1a1e29;
+                --line: #2a2f3d;
+                --ink: #e8e9ee;
+                --dim: #8b91a3;
+                --faint: #5a6072;
+                --gold: #f3d34a;
+                --gold-soft: #cdb43f;
+                --teal: #3d7fb0;
+                --teal-bright: #5aa7d8;
+                --hot: #e0653f;
+                --good: #76c293;
+                --mono:
+                    "Space Mono", ui-monospace, "SFMono-Regular", Menlo,
+                    Consolas, monospace;
+                --disp: "Fraunces", Georgia, "Times New Roman", serif;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            html,
+            body {
+                margin: 0;
+                background: var(--bg);
+                color: var(--ink);
+                font-family: var(--mono);
+                -webkit-font-smoothing: antialiased;
+            }
+            body {
+                background:
+                    radial-gradient(
+                        1100px 600px at 78% -8%,
+                        rgba(61, 127, 176, 0.1),
+                        transparent 60%
+                    ),
+                    radial-gradient(
+                        900px 500px at 10% 110%,
+                        rgba(243, 211, 74, 0.06),
+                        transparent 55%
+                    ),
+                    var(--bg);
+                min-height: 100vh;
+                padding: 26px clamp(14px, 3vw, 40px) 40px;
+            }
+            .wrap {
+                max-width: 1180px;
+                margin: 0 auto;
+            }
+            header {
+                margin-bottom: 22px;
+                border-bottom: 1px solid var(--line);
+                padding-bottom: 16px;
+            }
+            .eyebrow {
+                font-size: 11px;
+                letter-spacing: 0.34em;
+                text-transform: uppercase;
+                color: var(--gold-soft);
+                margin: 0 0 8px;
+            }
+            h1 {
+                font-family: var(--disp);
+                font-weight: 900;
+                font-size: clamp(28px, 4.4vw, 46px);
+                line-height: 0.98;
+                margin: 0;
+                letter-spacing: -0.01em;
+            }
+            h1 em {
+                font-style: italic;
+                color: var(--teal-bright);
+                font-weight: 600;
+            }
+            .sub {
+                color: var(--dim);
+                font-size: 13px;
+                margin: 10px 0 0;
+                max-width: 64ch;
+                line-height: 1.55;
+            }
+
+            .grid {
+                display: grid;
+                grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+                gap: 22px;
+                align-items: start;
+            }
+            @media (max-width: 880px) {
+                .grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            .card {
+                background: linear-gradient(
+                    180deg,
+                    var(--panel),
+                    var(--panel-2)
+                );
+                border: 1px solid var(--line);
+                border-radius: 14px;
+                padding: 18px;
+            }
+            .card h2 {
+                font-family: var(--disp);
+                font-weight: 600;
+                font-size: 15px;
+                margin: 0 0 14px;
+                letter-spacing: 0.01em;
+                color: var(--ink);
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+            }
+            .card h2 .tag {
+                font-family: var(--mono);
+                font-size: 10px;
+                letter-spacing: 0.2em;
+                text-transform: uppercase;
+                color: var(--faint);
+            }
+
+            .stage {
+                display: flex;
+                gap: 14px;
+                align-items: stretch;
+            }
+            .frame {
+                position: relative;
+                flex: 1;
+                border: 1px solid var(--line);
+                border-radius: 10px;
+                overflow: hidden;
+                background: #000;
+                aspect-ratio: 1/1;
+            }
+            #field {
+                width: 100%;
+                height: 100%;
+                display: block;
+                image-rendering: auto;
+            }
+            .frame .badge {
+                position: absolute;
+                left: 10px;
+                top: 10px;
+                font-size: 10px;
+                letter-spacing: 0.15em;
+                text-transform: uppercase;
+                color: var(--ink);
+                background: rgba(8, 10, 15, 0.62);
+                border: 1px solid var(--line);
+                padding: 4px 8px;
+                border-radius: 6px;
+                backdrop-filter: blur(3px);
+            }
+            .cbar {
+                width: 18px;
+                border: 1px solid var(--line);
+                border-radius: 6px;
+                background: linear-gradient(
+                    0deg,
+                    #00224e,
+                    #123570,
+                    #3b496c,
+                    #707173,
+                    #a99d5b,
+                    #f9e721
+                );
+            }
+            .cbar-wrap {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 6px;
+                font-size: 9px;
+                color: var(--faint);
+                letter-spacing: 0.1em;
+            }
+            .cbar-wrap .lab {
+                writing-mode: vertical-rl;
+                transform: rotate(180deg);
+                letter-spacing: 0.2em;
+                text-transform: uppercase;
+                color: var(--dim);
+                margin: 4px 0;
+            }
+
+            .controls {
+                display: flex;
+                gap: 8px;
+                margin-top: 14px;
+                flex-wrap: wrap;
+            }
+            button {
+                font-family: var(--mono);
+                font-size: 11px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--ink);
+                background: var(--panel-2);
+                border: 1px solid var(--line);
+                padding: 9px 13px;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: 0.16s;
+                flex: 1;
+                min-width: 84px;
+            }
+            button:hover {
+                border-color: var(--teal);
+                color: var(--teal-bright);
+            }
+            button.primary {
+                background: var(--gold);
+                color: #1a1505;
+                border-color: var(--gold);
+                font-weight: 700;
+            }
+            button.primary:hover {
+                background: var(--gold-soft);
+                color: #1a1505;
+            }
+            button:active {
+                transform: translateY(1px);
+            }
+
+            .slider {
+                margin: 0 0 15px;
+            }
+            .slider .row {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                margin-bottom: 6px;
+            }
+            .slider .name {
+                font-size: 12px;
+                color: var(--ink);
+            }
+            .slider .name small {
+                color: var(--faint);
+                font-size: 10px;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                margin-left: 6px;
+            }
+            .slider .name small .pill {
+                margin-left: 8px;
+                vertical-align: middle;
+            }
+            .slider .val {
+                font-size: 13px;
+                color: var(--gold);
+                font-weight: 700;
+            }
+            input[type="range"] {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 100%;
+                height: 4px;
+                background: var(--line);
+                border-radius: 3px;
+                outline: none;
+                cursor: pointer;
+            }
+            input[type="range"]::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                width: 16px;
+                height: 16px;
+                border-radius: 50%;
+                background: var(--teal-bright);
+                border: 2px solid var(--bg);
+                box-shadow: 0 0 0 1px var(--teal);
+                cursor: pointer;
+            }
+            input[type="range"]::-moz-range-thumb {
+                width: 16px;
+                height: 16px;
+                border-radius: 50%;
+                background: var(--teal-bright);
+                border: 2px solid var(--bg);
+                cursor: pointer;
+            }
+
+            .readouts {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                margin-top: 4px;
+            }
+            .ro {
+                background: var(--bg);
+                border: 1px solid var(--line);
+                border-radius: 9px;
+                padding: 11px 12px;
+            }
+            .ro .k {
+                font-size: 10px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--faint);
+            }
+            .ro .v {
+                font-family: var(--disp);
+                font-weight: 600;
+                font-size: 23px;
+                margin-top: 3px;
+                line-height: 1;
+            }
+            .ro .u {
+                font-size: 11px;
+                color: var(--dim);
+                margin-left: 3px;
+                font-family: var(--mono);
+            }
+            .ro.full {
+                grid-column: 1/3;
+            }
+            .pill {
+                display: inline-block;
+                font-size: 11px;
+                padding: 2px 9px;
+                border-radius: 20px;
+                letter-spacing: 0.08em;
+                font-weight: 700;
+            }
+            .pill.spin {
+                background: rgba(224, 101, 63, 0.16);
+                color: var(--hot);
+                border: 1px solid rgba(224, 101, 63, 0.4);
+            }
+            .pill.meta {
+                background: rgba(243, 211, 74, 0.14);
+                color: var(--gold);
+                border: 1px solid rgba(243, 211, 74, 0.4);
+            }
+            .pill.stab {
+                background: rgba(118, 194, 147, 0.14);
+                color: var(--good);
+                border: 1px solid rgba(118, 194, 147, 0.4);
+            }
+
+            .mini {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 14px;
+                margin-top: 14px;
+            }
+            .mini canvas,
+            .phasewrap canvas {
+                width: 100%;
+                display: block;
+                border: 1px solid var(--line);
+                border-radius: 9px;
+                background: var(--bg);
+            }
+            .cap {
+                font-size: 10px;
+                letter-spacing: 0.1em;
+                /*text-transform: uppercase;*/
+                color: var(--faint);
+                margin: 0 0 7px;
+            }
+            .cap.statcap {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                gap: 12px;
+            }
+            .cap .liveval {
+                color: var(--ink);
+                font-size: 12px;
+                font-family: var(--disp);
+                font-weight: 600;
+                letter-spacing: 0;
+                text-transform: none;
+                white-space: nowrap;
+            }
+            .note {
+                font-size: 11px;
+                color: var(--faint);
+                line-height: 1.5;
+                margin: 14px 0 0;
+                border-top: 1px solid var(--line);
+                padding-top: 12px;
+            }
+            .note b {
+                color: var(--dim);
+                font-weight: 700;
+            }
+            .stack {
+                display: flex;
+                flex-direction: column;
+                gap: 22px;
+            }
+            .legend {
+                display: flex;
+                gap: 14px;
+                flex-wrap: wrap;
+                font-size: 10px;
+                color: var(--dim);
+                margin-top: 8px;
+            }
+            .legend i {
+                width: 18px;
+                height: 0;
+                border-top-width: 2px;
+                border-top-style: solid;
+                display: inline-block;
+                vertical-align: middle;
+                margin-right: 5px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrap">
+            <header>
+                <p class="eyebrow">Processing · Structure · Properties</p>
+                <h1>
+                    Spinodal Decomposition <em>— a living phase diagram</em>
+                </h1>
+            </header>
+
+            <div class="grid">
+                <!-- LEFT: microstructure -->
+                <div class="card">
+                    <h2>
+                        Microstructure
+                        <span class="tag" id="phaseTag">live · 128²</span>
+                    </h2>
+                    <div class="stage">
+                        <div class="frame">
+                            <canvas
+                                id="field"
+                                width="128"
+                                height="128"
+                            ></canvas>
+                            <div class="badge" id="stepBadge">t = 0</div>
+                        </div>
+                        <div class="cbar-wrap">
+                            <span>1.0</span>
+                            <div class="cbar" style="flex: 1"></div>
+                            <span>0.0</span>
+                            <span class="lab">concentration c</span>
+                        </div>
+                    </div>
+                    <div class="controls">
+                        <button class="primary" id="playBtn">Pause</button>
+                        <button id="restartBtn">Restart</button>
+                    </div>
+                </div>
+
+                <!-- RIGHT: controls + readouts -->
+                <div class="stack">
+                    <div class="card">
+                        <h2>
+                            Processing controls
+                            <span class="tag">drag to explore</span>
+                        </h2>
+                        <div class="slider">
+                            <div class="row">
+                                <span class="name"
+                                    >composition <small>c&#772;</small></span
+                                >
+                                <span class="val" id="cbarV">0.50</span>
+                            </div>
+                            <input
+                                type="range"
+                                id="cbar"
+                                min="0.20"
+                                max="0.50"
+                                step="0.005"
+                                value="0.50"
+                            />
+                        </div>
+                        <div class="slider">
+                            <div class="row">
+                                <span class="name"
+                                    >temperature
+                                    <small
+                                        >T · sets the operating point + mobility
+                                        <span class="pill" id="regimePill"
+                                            >mixed</span
+                                        ></small
+                                    ></span
+                                >
+                                <span class="val" id="tempV">2.50</span>
+                            </div>
+                            <input
+                                type="range"
+                                id="temp"
+                                min="1.00"
+                                max="2.80"
+                                step="0.01"
+                                value="2.50"
+                            />
+                        </div>
+                        <div class="slider">
+                            <div class="row">
+                                <span class="name"
+                                    >incompatibility
+                                    <small
+                                        >B · scales the miscibility gap</small
+                                    ></span
+                                >
+                                <span class="val" id="incV">3.00</span>
+                            </div>
+                            <input
+                                type="range"
+                                id="inc"
+                                min="2.60"
+                                max="3.40"
+                                step="0.02"
+                                value="3.00"
+                            />
+                        </div>
+                        <div class="slider">
+                            <div class="row">
+                                <span class="name"
+                                    >interface width
+                                    <small>κ · interaction range</small></span
+                                >
+                                <span class="val" id="kapV">1.5</span>
+                            </div>
+                            <input
+                                type="range"
+                                id="kap"
+                                min="1.0"
+                                max="3.0"
+                                step="0.05"
+                                value="1.5"
+                            />
+                        </div>
+                        <p class="note" style="margin-top: 4px">
+                            In a real material, incompatibility and interface
+                            width are fixed by chemistry. Temperature is the one
+                            knob a processing schedule actually moves.
+                        </p>
+                    </div>
+
+                    <div class="card">
+                        <h2>
+                            Thermodynamic diagnostics
+                            <span class="tag">phase diagram · processing</span>
+                        </h2>
+                        <div
+                            class="mini"
+                            style="
+                                grid-template-columns: 1fr 1fr;
+                                margin-top: 0;
+                            "
+                        >
+                            <div class="phasewrap">
+                                <p class="cap">Phase diagram</p>
+                                <canvas
+                                    id="phase"
+                                    width="360"
+                                    height="260"
+                                ></canvas>
+                                <div class="legend">
+                                    <span
+                                        ><i style="border-color: var(--hot)"></i
+                                        >spinodal</span
+                                    >
+                                    <span
+                                        ><i
+                                            style="border-color: var(--gold)"
+                                        ></i
+                                        >binodal</span
+                                    >
+                                    <span style="color: var(--ink)"
+                                        >● your operating point</span
+                                    >
+                                </div>
+                            </div>
+                            <div>
+                                <p class="cap">Processing history · T(t)</p>
+                                <canvas
+                                    id="tplot"
+                                    width="360"
+                                    height="260"
+                                ></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DIAGNOSTICS full width -->
+            <div class="card" style="margin-top: 22px">
+                <h2>
+                    Structure-property histories
+                    <span class="tag">structure &rarr; property</span>
+                </h2>
+                <div
+                    class="mini"
+                    style="grid-template-columns: repeat(3, 1fr); margin-top: 0"
+                >
+                    <div>
+                        <p class="cap statcap">
+                            <span>Structure · L(t)</span>
+                            <span class="liveval"
+                                ><span id="roL">—</span> px</span
+                            >
+                        </p>
+                        <canvas id="lplot" width="300" height="240"></canvas>
+                    </div>
+                    <div>
+                        <p class="cap statcap">
+                            <span>Interface evolution · A(t)</span>
+                            <span class="liveval"
+                                ><span id="roIA">—</span></span
+                            >
+                        </p>
+                        <canvas id="iaplot" width="300" height="240"></canvas>
+                    </div>
+                    <div>
+                        <p class="cap statcap">
+                            <span>Transport response · σeff(t)</span>
+                            <span class="liveval"
+                                ><span id="roSig">—</span></span
+                            >
+                        </p>
+                        <canvas id="sigplot" width="300" height="240"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            "use strict";
+            // =====================================================================
+            //  Minimal complex FFT (iterative radix-2) + 2D transforms
+            // =====================================================================
+            function makeFFT(N) {
+                const rev = new Uint32Array(N);
+                let bits = Math.log2(N) | 0;
+                for (let i = 0; i < N; i++) {
+                    let x = i,
+                        r = 0;
+                    for (let b = 0; b < bits; b++) {
+                        r = (r << 1) | (x & 1);
+                        x >>= 1;
+                    }
+                    rev[i] = r;
+                }
+                const cosT = new Float64Array(N / 2),
+                    sinT = new Float64Array(N / 2);
+                for (let i = 0; i < N / 2; i++) {
+                    cosT[i] = Math.cos((-2 * Math.PI * i) / N);
+                    sinT[i] = Math.sin((-2 * Math.PI * i) / N);
+                }
+                function fft1(re, im, off, stride, inv) {
+                    for (let i = 0; i < N; i++) {
+                        const j = rev[i];
+                        if (j > i) {
+                            let a = off + i * stride,
+                                b = off + j * stride;
+                            let t = re[a];
+                            re[a] = re[b];
+                            re[b] = t;
+                            t = im[a];
+                            im[a] = im[b];
+                            im[b] = t;
+                        }
+                    }
+                    for (let len = 2; len <= N; len <<= 1) {
+                        const half = len >> 1,
+                            step = N / len;
+                        for (let i = 0; i < N; i += len) {
+                            let k = 0;
+                            for (let j = 0; j < half; j++) {
+                                const c = cosT[k],
+                                    s = inv ? -sinT[k] : sinT[k];
+                                const a = off + (i + j) * stride,
+                                    b = off + (i + j + half) * stride;
+                                const xr = re[b] * c - im[b] * s,
+                                    xi = re[b] * s + im[b] * c;
+                                re[b] = re[a] - xr;
+                                im[b] = im[a] - xi;
+                                re[a] += xr;
+                                im[a] += xi;
+                                k += step;
+                            }
+                        }
+                    }
+                }
+                function fft2(re, im, inv) {
+                    for (let r = 0; r < N; r++) fft1(re, im, r * N, 1, inv);
+                    for (let c = 0; c < N; c++) fft1(re, im, c, N, inv);
+                    if (inv) {
+                        const s = 1 / (N * N);
+                        for (let i = 0; i < N * N; i++) {
+                            re[i] *= s;
+                            im[i] *= s;
+                        }
+                    }
+                }
+                return { fft2, N };
+            }
+
+            // =====================================================================
+            //  Cahn–Hilliard solver (semi-implicit Fourier-spectral)
+            // =====================================================================
+            class CahnHilliard {
+                constructor(N = 128) {
+                    this.N = N;
+                    this.dt = 0.8;
+                    this.A = 12.0;
+                    this.fft = makeFFT(N);
+                    this.c = new Float64Array(N * N);
+                    this.cr = new Float64Array(N * N);
+                    this.ci = new Float64Array(N * N);
+                    this.nr = new Float64Array(N * N);
+                    this.nim = new Float64Array(N * N);
+                    this.k2 = new Float64Array(N * N);
+                    const f = new Float64Array(N);
+                    for (let i = 0; i < N; i++) {
+                        const m = i < N / 2 ? i : i - N;
+                        f[i] = (2 * Math.PI * m) / N;
+                    }
+                    for (let y = 0; y < N; y++)
+                        for (let x = 0; x < N; x++)
+                            this.k2[y * N + x] = f[y] * f[y] + f[x] * f[x];
+                    this.step_count = 0;
+                }
+                seed(cbar) {
+                    const N = this.N;
+                    for (let i = 0; i < N * N; i++) {
+                        let v = cbar + 0.02 * (Math.random() - 0.5);
+                        this.c[i] = Math.min(0.9999, Math.max(1e-4, v));
+                    }
+                    this.step_count = 0;
+                }
+                static df(c, chi) {
+                    const cc = Math.min(1 - 1e-6, Math.max(1e-6, c));
+                    return Math.log(cc / (1 - cc)) + chi * (1 - 2 * cc);
+                }
+                step(chi, M, kappa, n = 1) {
+                    const N = this.N,
+                        A = this.A,
+                        dt = this.dt,
+                        k2 = this.k2;
+                    const c = this.c,
+                        cr = this.cr,
+                        ci = this.ci,
+                        nr = this.nr,
+                        nim = this.nim;
+                    for (let it = 0; it < n; it++) {
+                        for (let i = 0; i < N * N; i++) {
+                            nr[i] = CahnHilliard.df(c[i], chi) - A * c[i];
+                            nim[i] = 0;
+                            cr[i] = c[i];
+                            ci[i] = 0;
+                        }
+                        this.fft.fft2(cr, ci, false);
+                        this.fft.fft2(nr, nim, false);
+                        for (let i = 0; i < N * N; i++) {
+                            const mk = dt * M * k2[i];
+                            const denom = 1 + mk * (A + kappa * k2[i]);
+                            cr[i] = (cr[i] - mk * nr[i]) / denom;
+                            ci[i] = (ci[i] - mk * nim[i]) / denom;
+                        }
+                        this.fft.fft2(cr, ci, true);
+                        for (let i = 0; i < N * N; i++) c[i] = cr[i];
+                        this.step_count++;
+                    }
+                }
+            }
+
+            // =====================================================================
+            //  Property extraction
+            // =====================================================================
+            function interfacialArea(c, N) {
+                let s = 0;
+                for (let y = 0; y < N; y++)
+                    for (let x = 0; x < N; x++) {
+                        const xp = (x + 1) % N,
+                            yp = (y + 1) % N;
+                        const gx = c[y * N + xp] - c[y * N + x],
+                            gy = c[yp * N + x] - c[y * N + x];
+                        s += Math.sqrt(gx * gx + gy * gy);
+                    }
+                return s / (N * N);
+            }
+            function minorityFraction(c, N) {
+                let n = 0;
+                for (let i = 0; i < N * N; i++) if (c[i] < 0.5) n++;
+                return n / (N * N);
+            }
+
+            const _sfFFT = makeFFT(128);
+            const _sr = new Float64Array(128 * 128),
+                _si = new Float64Array(128 * 128);
+            function domainSize(c, N) {
+                let mean = 0;
+                for (let i = 0; i < N * N; i++) mean += c[i];
+                mean /= N * N;
+                for (let i = 0; i < N * N; i++) {
+                    _sr[i] = c[i] - mean;
+                    _si[i] = 0;
+                }
+                _sfFFT.fft2(_sr, _si, false);
+                const f = new Float64Array(N);
+                for (let i = 0; i < N; i++) {
+                    const m = i < N / 2 ? i : i - N;
+                    f[i] = m;
+                }
+                let num = 0,
+                    den = 0;
+                for (let y = 0; y < N; y++)
+                    for (let x = 0; x < N; x++) {
+                        const i = y * N + x;
+                        const S = _sr[i] * _sr[i] + _si[i] * _si[i];
+                        const kr = Math.sqrt(f[y] * f[y] + f[x] * f[x]);
+                        if (kr > 0) {
+                            num += kr * S;
+                            den += S;
+                        }
+                    }
+                if (den <= 0) return NaN;
+                const kmean = (num / den) * ((2 * Math.PI) / N);
+                return kmean > 0 ? (2 * Math.PI) / kmean : NaN;
+            }
+            function effConductivity(c, N, n = 40) {
+                const f = Math.max(1, (N / n) | 0),
+                    m = (N / f) | 0;
+                const sig = new Float64Array(m * m);
+                for (let Y = 0; Y < m; Y++)
+                    for (let X = 0; X < m; X++) {
+                        let acc = 0;
+                        for (let dy = 0; dy < f; dy++)
+                            for (let dx = 0; dx < f; dx++)
+                                acc += c[(Y * f + dy) * N + (X * f + dx)];
+                        sig[Y * m + X] = acc / (f * f) > 0.5 ? 1.0 : 1e-3;
+                    }
+                const V = new Float64Array(m * m);
+                for (let Y = 0; Y < m; Y++)
+                    for (let X = 0; X < m; X++) V[Y * m + X] = Y / (m - 1);
+                const hm = (a, b) => (2 * a * b) / (a + b);
+                for (let it = 0; it < 160; it++) {
+                    for (let Y = 0; Y < m; Y++)
+                        for (let X = 0; X < m; X++) {
+                            const i = Y * m + X;
+                            let num = 0,
+                                den = 0;
+                            for (const dx of [-1, 1]) {
+                                const xn = (X + dx + m) % m;
+                                const g = hm(sig[i], sig[Y * m + xn]);
+                                num += g * V[Y * m + xn];
+                                den += g;
+                            }
+                            if (Y + 1 < m) {
+                                const g = hm(sig[i], sig[(Y + 1) * m + X]);
+                                num += g * V[(Y + 1) * m + X];
+                                den += g;
+                            } else {
+                                const g = sig[i];
+                                num += g * 1.0;
+                                den += g;
+                            }
+                            if (Y - 1 >= 0) {
+                                const g = hm(sig[i], sig[(Y - 1) * m + X]);
+                                num += g * V[(Y - 1) * m + X];
+                                den += g;
+                            } else {
+                                const g = sig[i];
+                                num += g * 0.0;
+                                den += g;
+                            }
+                            if (den > 0) V[i] = num / den;
+                        }
+                }
+                let flux = 0;
+                for (let X = 0; X < m; X++) flux += sig[X] * (V[X] - 0.0);
+                flux /= m;
+                return flux * m;
+            }
+
+            // =====================================================================
+            //  Cividis colormap
+            // =====================================================================
+            const CIV = [
+                [0, 32, 76],
+                [0, 42, 102],
+                [26, 58, 107],
+                [57, 74, 106],
+                [85, 91, 108],
+                [110, 108, 111],
+                [136, 126, 108],
+                [164, 145, 99],
+                [193, 164, 84],
+                [223, 185, 58],
+                [253, 210, 11],
+            ];
+            const LUT = new Uint8ClampedArray(256 * 3);
+            for (let i = 0; i < 256; i++) {
+                const t = (i / 255) * (CIV.length - 1),
+                    j = Math.min(CIV.length - 2, t | 0),
+                    fr = t - j;
+                for (let k = 0; k < 3; k++)
+                    LUT[i * 3 + k] =
+                        CIV[j][k] + (CIV[j + 1][k] - CIV[j][k]) * fr;
+            }
+
+            // =====================================================================
+            //  Thermodynamics: T–c phase boundaries (regular solution, chi = B/T)
+            //    spinodal  T_s(c) = B * 2c(1-c)
+            //    binodal   T_b(c) = B * (1-2c)/ln((1-c)/c)
+            //    critical  (0.5, B/2)
+            // =====================================================================
+            function Tspin(c, B) {
+                return B * 2 * c * (1 - c);
+            }
+            function Tbin(c, B) {
+                const d = 1 - 2 * c;
+                if (Math.abs(d) < 2e-3) return B / 2;
+                return (B * d) / Math.log((1 - c) / c);
+            }
+            function regime(cbar, T, B) {
+                const ts = Tspin(cbar, B),
+                    tb = Tbin(cbar, B);
+                if (T >= tb) return "stable";
+                if (T >= ts) return "metastable";
+                return "spinodal";
+            }
+            // Arrhenius mobility: warm = fast, cold = (operationally) frozen
+            const M0 = 5.28,
+                EA = 4.66;
+            const mobility = (T) => M0 * Math.exp(-EA / T);
+
+            // =====================================================================
+            //  App wiring
+            // =====================================================================
+            const N = 128,
+                sim = new CahnHilliard(N);
+            const T_MIN = 1.0,
+                T_MAX = 2.8;
+            const fcanvas = document.getElementById("field"),
+                fctx = fcanvas.getContext("2d");
+            const img = fctx.createImageData(N, N);
+            const offc = document.createElement("canvas");
+            offc.width = N;
+            offc.height = N;
+            const offctx = offc.getContext("2d");
+            fctx.imageSmoothingEnabled = true;
+
+            const ui = {
+                cbar: document.getElementById("cbar"),
+                temp: document.getElementById("temp"),
+                inc: document.getElementById("inc"),
+                kap: document.getElementById("kap"),
+                cbarV: document.getElementById("cbarV"),
+                tempV: document.getElementById("tempV"),
+                incV: document.getElementById("incV"),
+                kapV: document.getElementById("kapV"),
+                roL: document.getElementById("roL"),
+                roIA: document.getElementById("roIA"),
+                roSig: document.getElementById("roSig"),
+                pill: document.getElementById("regimePill"),
+                step: document.getElementById("stepBadge"),
+                play: document.getElementById("playBtn"),
+                restart: document.getElementById("restartBtn"),
+            };
+            const Lhist = [],
+                IAhist = [],
+                Sighist = [],
+                This = []; // {t, v}
+            let running = true,
+                frame = 0;
+
+            function P() {
+                return {
+                    cbar: +ui.cbar.value,
+                    T: +ui.temp.value,
+                    B: +ui.inc.value,
+                    kap: +ui.kap.value,
+                };
+            }
+            function syncLabels() {
+                const p = P();
+                ui.cbarV.textContent = p.cbar.toFixed(3);
+                ui.tempV.textContent = p.T.toFixed(2);
+                ui.incV.textContent = p.B.toFixed(2);
+                ui.kapV.textContent = p.kap.toFixed(1);
+            }
+            function pushHist(arr, t, v) {
+                arr.push({ t, v });
+                if (arr.length > 1600) {
+                    const out = [];
+                    for (let i = 0; i < arr.length; i += 2) out.push(arr[i]);
+                    arr.length = 0;
+                    arr.push(...out);
+                }
+            }
+            function render() {
+                for (let i = 0; i < N * N; i++) {
+                    let v = sim.c[i];
+                    v = v < 0 ? 0 : v > 1 ? 1 : v;
+                    const q = (v * 255) | 0;
+                    img.data[i * 4] = LUT[q * 3];
+                    img.data[i * 4 + 1] = LUT[q * 3 + 1];
+                    img.data[i * 4 + 2] = LUT[q * 3 + 2];
+                    img.data[i * 4 + 3] = 255;
+                }
+                offctx.putImageData(img, 0, 0);
+                fctx.clearRect(0, 0, fcanvas.width, fcanvas.height);
+                fctx.drawImage(offc, 0, 0, fcanvas.width, fcanvas.height);
+            }
+            function updateReadouts() {
+                const p = P();
+                const L = domainSize(sim.c, N),
+                    ia = interfacialArea(sim.c, N),
+                    sig = effConductivity(sim.c, N);
+                const Lcap = isFinite(L) ? Math.min(L, N) : NaN;
+                ui.roL.textContent = isFinite(Lcap) ? Lcap.toFixed(1) : "—";
+                ui.roIA.textContent = ia.toFixed(4);
+                ui.roSig.textContent = sig.toFixed(3);
+                const r = regime(p.cbar, p.T, p.B);
+                ui.pill.className =
+                    "pill " +
+                    (r === "spinodal"
+                        ? "spin"
+                        : r === "metastable"
+                          ? "meta"
+                          : "stab");
+                ui.pill.textContent =
+                    r === "spinodal"
+                        ? "separated"
+                        : r === "metastable"
+                          ? "metastable"
+                          : "mixed";
+                ui.step.textContent = "t = " + sim.step_count;
+                const t = sim.step_count;
+                if (isFinite(Lcap)) pushHist(Lhist, t, Lcap);
+                if (isFinite(ia)) pushHist(IAhist, t, ia);
+                if (isFinite(sig)) pushHist(Sighist, t, sig);
+                pushHist(This, t, p.T);
+            }
+
+            // ---- phase diagram (T–c) ----
+            const pc = document.getElementById("phase"),
+                px = pc.getContext("2d");
+            function drawPhase() {
+                const W = pc.width,
+                    H = pc.height,
+                    padL = 50,
+                    padB = 26,
+                    padT = 12,
+                    padR = 15;
+                const p = P(),
+                    B = p.B;
+                const x0 = 0.15,
+                    x1 = 0.85;
+                const X = (c) =>
+                    padL + ((c - x0) / (x1 - x0)) * (W - padL - padR);
+                const Y = (T) =>
+                    H -
+                    padB -
+                    ((T - T_MIN) / (T_MAX - T_MIN)) * (H - padT - padB); // T increases upward
+                px.clearRect(0, 0, W, H);
+                px.fillStyle = "#0c0e13";
+                px.fillRect(0, 0, W, H);
+
+                // shade spinodal region (below spinodal dome) and metastable band
+                function fillUnder(fn, col) {
+                    px.beginPath();
+                    let started = false;
+                    for (let c = x0; c <= x1; c += 0.004) {
+                        let T = fn(c);
+                        T = Math.max(T_MIN, Math.min(T_MAX, T));
+                        const xx = X(c),
+                            yy = Y(T);
+                        if (!started) {
+                            px.moveTo(X(x0), Y(T_MIN));
+                            px.lineTo(xx, yy);
+                            started = true;
+                        } else px.lineTo(xx, yy);
+                    }
+                    px.lineTo(X(x1), Y(T_MIN));
+                    px.closePath();
+                    px.fillStyle = col;
+                    px.fill();
+                }
+                fillUnder((c) => Tbin(c, B), "rgba(243,211,74,.10)"); // up to binodal = miscibility gap (meta+spin)
+                fillUnder((c) => Tspin(c, B), "rgba(224,101,63,.20)"); // up to spinodal = unstable
+
+                // curves
+                function curve(fn, col, w) {
+                    px.beginPath();
+                    let started = false;
+                    for (let c = x0; c <= x1; c += 0.003) {
+                        const v = fn(c);
+                        if (v >= T_MIN && v <= T_MAX) {
+                            const xx = X(c),
+                                yy = Y(v);
+                            if (!started) {
+                                px.moveTo(xx, yy);
+                                started = true;
+                            } else px.lineTo(xx, yy);
+                        }
+                    }
+                    px.strokeStyle = col;
+                    px.lineWidth = w;
+                    px.stroke();
+                }
+                curve((c) => Tbin(c, B), "rgba(243,211,74,.9)", 1.6);
+                curve((c) => Tspin(c, B), "rgba(224,101,63,.95)", 1.8);
+
+                // axes
+                px.strokeStyle = "#2a2f3d";
+                px.lineWidth = 1;
+                px.beginPath();
+                px.moveTo(padL, padT);
+                px.lineTo(padL, H - padB);
+                px.lineTo(W - padR, H - padB);
+                px.stroke();
+                px.fillStyle = "#8b91a3";
+                const fontsize = 19;
+                px.font = '19px "Space Mono",monospace';
+                px.fillText("0.15", padL - 6, H - padB + fontsize + 2);
+                px.fillText(
+                    "0.85",
+                    W - padR - fontsize * 2,
+                    H - padB + fontsize + 2,
+                );
+                px.fillText("composition c", padL + fontsize * 3, H - 5);
+                px.save();
+                px.translate(fontsize + 2, H - padB * 2);
+                px.rotate(-Math.PI / 2);
+                px.fillText("Temperature T", 0, 0);
+                px.restore();
+                px.fillText(T_MAX.toFixed(1), 4, padT + 8);
+                px.fillText(T_MIN.toFixed(1), 4, H - padB);
+
+                // critical point
+                const Tc = B / 2;
+                if (Tc >= T_MIN && Tc <= T_MAX) {
+                    px.fillStyle = "#5aa7d8";
+                    px.beginPath();
+                    px.arc(X(0.5), Y(Tc), 2.6, 0, 7);
+                    px.fill();
+                }
+
+                // operating point
+                const cx = X(Math.max(x0, Math.min(x1, p.cbar))),
+                    cy = Y(Math.max(T_MIN, Math.min(T_MAX, p.T)));
+                px.strokeStyle = "#e8e9ee";
+                px.lineWidth = 1.4;
+                px.beginPath();
+                px.arc(cx, cy, 5.5, 0, 7);
+                px.stroke();
+                px.fillStyle = "#fff";
+                px.beginPath();
+                px.arc(cx, cy, 2.4, 0, 7);
+                px.fill();
+            }
+
+            // ---- generic time-series plot ----
+            function drawSeries(ctx, cv, hist, ymin, ymax, color, fill, fmt) {
+                const W = cv.width,
+                    H = cv.height,
+                    padL = 50,
+                    padB = 22,
+                    padT = 12,
+                    padR = 10;
+                ctx.clearRect(0, 0, W, H);
+                ctx.fillStyle = "#0c0e13";
+                ctx.fillRect(0, 0, W, H);
+                ctx.strokeStyle = "#2a2f3d";
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(padL, padT);
+                ctx.lineTo(padL, H - padB);
+                ctx.lineTo(W - padR, H - padB);
+                ctx.stroke();
+                ctx.fillStyle = "#8b91a3";
+                ctx.font = '19px "Space Mono",monospace';
+                ctx.fillText(fmt(ymax), 3, padT + 8);
+                ctx.fillText(fmt(ymin), 3, H - padB);
+                ctx.fillText("time →", W / 2 - 14, H - 4);
+                if (hist.length < 2) return;
+                const tmax = hist[hist.length - 1].t || 1;
+                const Xx = (t) => padL + (t / tmax) * (W - padL - padR);
+                const Yy = (v) =>
+                    H -
+                    padB -
+                    ((Math.max(ymin, Math.min(ymax, v)) - ymin) /
+                        (ymax - ymin)) *
+                        (H - padT - padB);
+                ctx.beginPath();
+                for (let i = 0; i < hist.length; i++) {
+                    const xx = Xx(hist[i].t),
+                        yy = Yy(hist[i].v);
+                    if (i === 0) ctx.moveTo(xx, yy);
+                    else ctx.lineTo(xx, yy);
+                }
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.8;
+                ctx.stroke();
+                ctx.lineTo(Xx(tmax), H - padB);
+                ctx.lineTo(padL, H - padB);
+                ctx.closePath();
+                ctx.fillStyle = fill;
+                ctx.fill();
+                const last = hist[hist.length - 1].v;
+                ctx.fillStyle = "#f3d34a";
+                ctx.font = '19px "Space Mono",monospace';
+                ctx.fillText(fmt(last), W - padR - 54, padT + 10);
+            }
+            const lp = document.getElementById("lplot"),
+                lx = lp.getContext("2d");
+            const iap = document.getElementById("iaplot"),
+                iax = iap.getContext("2d");
+            const sp = document.getElementById("sigplot"),
+                sx = sp.getContext("2d");
+            const tp = document.getElementById("tplot"),
+                tx = tp.getContext("2d");
+            function seriesUpper(hist, floor) {
+                let vmax = 0;
+                for (let i = 0; i < hist.length; i++) {
+                    const v = hist[i].v;
+                    if (isFinite(v) && v > vmax) vmax = v;
+                }
+                return Math.max(floor, vmax * 1.12);
+            }
+            function drawPlots() {
+                drawSeries(
+                    lx,
+                    lp,
+                    Lhist,
+                    0,
+                    N,
+                    "#5aa7d8",
+                    "rgba(90,167,216,.10)",
+                    (v) => v.toFixed(0),
+                );
+                drawSeries(
+                    iax,
+                    iap,
+                    IAhist,
+                    0,
+                    seriesUpper(IAhist, 0.02),
+                    "#f3d34a",
+                    "rgba(243,211,74,.10)",
+                    (v) => v.toFixed(3),
+                );
+                drawSeries(
+                    sx,
+                    sp,
+                    Sighist,
+                    0,
+                    seriesUpper(Sighist, 0.05),
+                    "#76c293",
+                    "rgba(118,194,147,.10)",
+                    (v) => v.toFixed(3),
+                );
+                drawSeries(
+                    tx,
+                    tp,
+                    This,
+                    T_MIN,
+                    T_MAX,
+                    "#e0653f",
+                    "rgba(224,101,63,.10)",
+                    (v) => v.toFixed(2),
+                );
+            }
+
+            // ---- main loop ----
+            function loop() {
+                if (running) {
+                    const p = P();
+                    const chi = p.B / p.T,
+                        M = mobility(p.T);
+                    sim.step(chi, M, p.kap, 4);
+                    render();
+                    if (frame % 6 === 0) {
+                        updateReadouts();
+                        drawPlots();
+                    }
+                }
+                drawPhase();
+                frame++;
+                requestAnimationFrame(loop);
+            }
+
+            // ---- events ----
+            [ui.cbar, ui.temp, ui.inc, ui.kap].forEach((el) =>
+                el.addEventListener("input", () => {
+                    syncLabels();
+                    drawPhase();
+                }),
+            );
+            function restart() {
+                sim.seed(+ui.cbar.value);
+                Lhist.length = 0;
+                IAhist.length = 0;
+                Sighist.length = 0;
+                This.length = 0;
+                render();
+                updateReadouts();
+                drawPlots();
+                running = true;
+                ui.play.textContent = "Pause";
+            }
+            ui.cbar.addEventListener("change", restart);
+            ui.restart.addEventListener("click", restart);
+            ui.play.addEventListener("click", () => {
+                running = !running;
+                ui.play.textContent = running ? "Pause" : "Play";
+            });
+
+            // ---- init ----
+            syncLabels();
+            sim.seed(+ui.cbar.value);
+            render();
+            updateReadouts();
+            drawPhase();
+            drawPlots();
+            loop();
+        </script>
+    </body>
+</html>
